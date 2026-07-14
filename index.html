@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAD Risk Predictor - Study 3: Sepsis Patients</title>
+<style>
+:root { --primary:#2563eb; --success:#10b981; --warning:#f59e0b; --danger:#ef4444; --gray-100:#f3f4f6; --gray-200:#e5e7eb; --gray-600:#4b5563; --gray-900:#1f2937; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; padding:20px; }
+.container { max-width:1200px; margin:0 auto; }
+.header { background:white; border-radius:16px; padding:24px 32px; margin-bottom:24px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.header h1 { font-size:1.5rem; color:var(--gray-900); font-weight:700; }
+.header .subtitle { color:var(--gray-600); font-size:0.9rem; margin-top:4px; }
+.badge { display:inline-flex; align-items:center; gap:8px; background:var(--gray-100); padding:8px 16px; border-radius:20px; font-size:0.85rem; color:var(--gray-600); }
+.main-grid { display:grid; grid-template-columns:1fr 400px; gap:24px; }
+@media(max-width:900px) { .main-grid { grid-template-columns:1fr; } }
+.card { background:white; border-radius:16px; padding:24px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom:24px; }
+.card-title { font-size:1.1rem; font-weight:600; color:var(--gray-900); margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid var(--gray-100); display:flex; align-items:center; gap:8px; }
+.icon { width:28px; height:28px; background:linear-gradient(135deg,var(--primary),#7c3aed); border-radius:8px; display:inline-flex; align-items:center; justify-content:center; color:white; font-size:14px; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.input-group { display:flex; flex-direction:column; gap:4px; }
+.input-group label { font-size:0.8rem; font-weight:500; color:var(--gray-600); }
+.unit { color:#9ca3af; font-weight:400; }
+.form-input, .form-select { padding:10px 12px; border:1.5px solid var(--gray-200); border-radius:8px; font-size:0.9rem; transition:all 0.2s; width:100%; }
+.form-input:focus, .form-select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+.btn-group { display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; }
+.btn { padding:12px 24px; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-primary { background:linear-gradient(135deg,var(--primary),#7c3aed); color:white; box-shadow:0 4px 12px rgba(37,99,235,0.3); }
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(37,99,235,0.4); }
+.btn-secondary { background:var(--gray-100); color:var(--gray-900); }
+.btn-secondary:hover { background:var(--gray-200); }
+.result-panel { position:sticky; top:20px; }
+.gauge { width:200px; height:200px; margin:0 auto; position:relative; }
+.gauge-value { position:absolute; top:50%; left:50%; transform:translate(-50%,-30%); font-size:2.2rem; font-weight:700; color:var(--gray-900); }
+.gauge-label { position:absolute; bottom:25%; left:50%; transform:translateX(-50%); font-size:0.8rem; color:var(--gray-600); }
+.risk-level { text-align:center; padding:16px; border-radius:12px; margin:16px 0; font-weight:600; font-size:1.1rem; transition:all 0.3s; }
+.risk-low { background:#d1fae5; color:#065f46; }
+.risk-moderate { background:#fef3c7; color:#92400e; }
+.risk-high { background:#fee2e2; color:#991b1b; }
+.feature-bar { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:0.78rem; }
+.feature-bar-name { width:120px; text-align:right; color:var(--gray-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.75rem; }
+.feature-bar-track { flex:1; height:18px; background:var(--gray-100); border-radius:9px; overflow:hidden; }
+.feature-bar-fill { height:100%; border-radius:9px; background:linear-gradient(90deg,var(--primary),#7c3aed); transition:width 0.5s; }
+.feature-bar-value { width:35px; text-align:left; color:var(--gray-600); font-weight:500; font-size:0.75rem; }
+.legend { display:flex; justify-content:center; gap:20px; margin-top:12px; font-size:0.8rem; color:var(--gray-600); }
+.legend-item { display:flex; align-items:center; gap:6px; }
+.legend-dot { width:12px; height:12px; border-radius:3px; }
+.footer { text-align:center; padding:20px; color:rgba(255,255,255,0.8); font-size:0.8rem; }
+.tabs { display:flex; gap:4px; margin-bottom:16px; background:var(--gray-100); padding:4px; border-radius:10px; }
+.tab { flex:1; padding:8px; border:none; border-radius:8px; font-size:0.82rem; font-weight:500; cursor:pointer; background:transparent; color:var(--gray-600); transition:all 0.2s; }
+.tab.active { background:white; color:var(--primary); box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.info-box { background:linear-gradient(135deg,#dbeafe,#e0e7ff); border-radius:12px; padding:14px; margin-bottom:16px; font-size:0.82rem; color:#1e3a5f; line-height:1.5; }
+.version-badge { position:fixed; bottom:20px; right:20px; background:rgba(0,0,0,0.7); color:white; padding:6px 14px; border-radius:20px; font-size:0.75rem; z-index:100; }
+@media print { body { background:white; padding:0; } .no-print { display:none!important; } .result-panel { position:static; } .card { box-shadow:none; border:1px solid #ddd; } }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <div><h1>IAD Risk Predictor - Study 3</h1><div class="subtitle">Sepsis Patients | ML-Based Risk Assessment Tool</div></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <span class="badge">AUC = 0.818</span><span class="badge">IAD = 28.7%</span><span class="badge">LR Model</span><span class="badge" style="background:#dbeafe;">GitHub Pages</span>
+  </div>
+</div>
+<div class="main-grid">
+  <div>
+    <div class="card no-print">
+      <div class="card-title"><span class="icon">&#128203;</span>Clinical Parameters</div>
+      <div class="info-box"><strong>Instructions:</strong> Enter patient clinical data below. Click <strong>"Calculate Risk"</strong> to generate the IAD risk prediction. The model uses 28 validated clinical variables.</div>
+      <div class="tabs"><button class="tab active" onclick="switchTab('basic',this)">Demographics & Scores</button><button class="tab" onclick="switchTab('clinical',this)">Clinical Features</button><button class="tab" onclick="switchTab('laboratory',this)">Lab & Treatment</button></div>
+      <div id="tab-basic" class="tab-content active"><div class="form-grid" id="grid-basic"></div></div>
+      <div id="tab-clinical" class="tab-content"><div class="form-grid" id="grid-clinical"></div></div>
+      <div id="tab-laboratory" class="tab-content"><div class="form-grid" id="grid-laboratory"></div></div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="calculateRisk()">&#9889; Calculate Risk</button><button class="btn btn-secondary" onclick="resetForm()">&#128260; Reset</button><button class="btn btn-secondary" onclick="loadExample()">&#128208; Load Example</button><button class="btn btn-secondary" onclick="window.print()">&#128424; Print</button></div>
+    </div>
+    <div class="card"><div class="card-title"><span class="icon">&#128202;</span>Feature Contributions</div><div id="featureImportance"><p style="color:#9ca3af;text-align:center;padding:20px;">Calculate risk to see feature contributions</p></div></div>
+  </div>
+  <div class="result-panel">
+    <div class="card">
+      <div class="card-title"><span class="icon">&#127775;</span>Risk Assessment Result</div>
+      <div style="text-align:center;padding:10px 0;">
+        <svg class="gauge" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" stroke-width="18"/><circle id="gaugeArc" cx="100" cy="100" r="80" fill="none" stroke="#e5e7eb" stroke-width="18" stroke-linecap="round" stroke-dasharray="0 502" transform="rotate(-90 100 100)"/></svg>
+        <div class="gauge-value" id="riskValue">--%</div><div class="gauge-label">IAD Risk Probability</div>
+      </div>
+      <div id="riskLevel" class="risk-level" style="background:#f3f4f6;color:#6b7280;">Enter data and click Calculate</div>
+      <div style="padding:12px 0;border-top:1px solid #e5e7eb;margin-top:12px;font-size:0.85rem;color:#4b5563;line-height:2;">
+        <div style="display:flex;justify-content:space-between;"><span>Risk Category</span><strong id="riskCategory">--</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>Recommended Action</span><strong id="recommendation" style="text-align:right;max-width:180px;">--</strong></div>
+        <div style="display:flex;justify-content:space-between;"><span>Odds Ratio</span><strong id="oddsRatio">--</strong></div>
+      </div>
+      <div class="legend"><div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Low (&lt;30%)</div><div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Mod (30-60%)</div><div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>High (&gt;60%)</div></div>
+    </div>
+    <div class="card"><div class="card-title"><span class="icon">&#8505;</span>Model Information</div><div style="font-size:0.85rem;color:#4b5563;line-height:1.9;"><div style="display:flex;justify-content:space-between"><span>Algorithm</span><strong>Logistic Regression</strong></div><div style="display:flex;justify-content:space-between"><span>AUC</span><strong>0.818</strong></div><div style="display:flex;justify-content:space-between"><span>Variables</span><strong>28</strong></div><div style="display:flex;justify-content:space-between"><span>Training N</span><strong>880</strong></div><div style="display:flex;justify-content:space-between"><span>IAD Rate</span><strong>28.7%</strong></div><div style="display:flex;justify-content:space-between"><span>Validation</span><strong>10-fold CV</strong></div></div></div>
+  </div>
+</div>
+<div class="footer"><p>IAD Risk Prediction Tool - Study 3: Sepsis Patients</p><p>Developed by Zhenshen Chen, MD, PhD, RN | Guangzhou Medical University</p><p style="font-size:0.7rem;margin-top:8px;opacity:0.7">This tool is for research and educational purposes only.</p></div>
+</div>
+<div class="version-badge">v1.0 | GitHub Pages</div>
+<script>
+const MODEL = {"feature_names":["Age","Gender","BMI","GCS","APACHE2","SOFA","Diagnosis_Stroke","Diagnosis_TBI","Sepsis","Hypertension","Diabetes","Coronary_Disease","Cerebrovascular_History","Stool_Frequency","Stool_Type","Double_Incontinence","PAT_Score","Braden_Scale","Skin_Moisture","Albumin","Hemoglobin","CRP","WBC","Mechanical_Ventilation","Sedation","Vasoactive_Drugs","Antibiotics","ICU_LOS"],"scaler_mean":[62.04,0.55,24.90,10.96,25.15,9.04,0.16,0.10,1.0,0.61,0.44,0.19,0.29,1.76,1.25,0.43,3.58,12.33,0.97,30.85,99.02,67.32,13.25,0.71,0.65,0.58,0.84,13.36],"scaler_scale":[14.29,0.50,4.43,3.05,5.99,2.90,0.36,0.30,0.0,0.49,0.50,0.39,0.45,1.01,0.76,0.50,1.45,3.08,0.74,5.79,19.41,70.93,4.88,0.45,0.48,0.49,0.37,10.72],"coefficients":[0.56,-0.09,-0.07,-0.54,0.53,0.11,0.25,-0.10,0.0,-0.06,0.05,0.06,0.10,0.53,0.39,0.26,0.31,-0.27,0.37,-0.60,-0.19,0.02,0.13,0.34,0.25,0.15,0.09,0.30],"intercept":-1.18,"auc":0.818,"prevalence":0.287};
+const DEFAULTS = {"Age":65,"Gender":0,"BMI":24,"GCS":12,"APACHE2":20,"SOFA":6,"Diagnosis_Stroke":0,"Diagnosis_TBI":0,"Sepsis":1,"Hypertension":0,"Diabetes":0,"Coronary_Disease":0,"Cerebrovascular_History":0,"Stool_Frequency":1,"Stool_Type":1,"Double_Incontinence":0,"PAT_Score":3,"Braden_Scale":14,"Skin_Moisture":1,"Albumin":32,"Hemoglobin":110,"CRP":50,"WBC":12,"Mechanical_Ventilation":0,"Sedation":0,"Vasoactive_Drugs":0,"Antibiotics":1,"ICU_LOS":5};
+const LABEL_MAP = {"Age":"Age","Gender":"Gender","BMI":"BMI","GCS":"GCS","APACHE2":"APACHE II","SOFA":"SOFA","Diagnosis_Stroke":"Stroke","Diagnosis_TBI":"TBI","Sepsis":"Sepsis","Hypertension":"HTN","Diabetes":"DM","Coronary_Disease":"CAD","Cerebrovascular_History":"CVD","Stool_Frequency":"Stool Freq","Stool_Type":"Stool Type","Double_Incontinence":"D-Incon","PAT_Score":"PAT","Braden_Scale":"Braden","Skin_Moisture":"Skin Moist","Albumin":"Albumin","Hemoglobin":"Hgb","CRP":"CRP","WBC":"WBC","Mechanical_Ventilation":"MV","Sedation":"Sedation","Vasoactive_Drugs":"Vasoact","Antibiotics":"Abx","ICU_LOS":"ICU LOS"};
+const FEAT_DEFS = {"Age":{"l":"Age","u":"years","mn":18,"mx":95,"st":1,"d":65},"Gender":{"l":"Gender","o":["Male","Female"],"d":0},"BMI":{"l":"BMI","u":"kg/m2","mn":15,"mx":45,"st":0.1,"d":24},"GCS":{"l":"Glasgow Coma Scale","mn":3,"mx":15,"st":1,"d":12},"APACHE2":{"l":"APACHE II Score","mn":0,"mx":71,"st":1,"d":20},"SOFA":{"l":"SOFA Score","mn":0,"mx":24,"st":1,"d":6},"Diagnosis_Stroke":{"l":"Stroke Diagnosis","o":["No","Yes"],"d":0},"Diagnosis_TBI":{"l":"TBI Diagnosis","o":["No","Yes"],"d":0},"Sepsis":{"l":"Sepsis","o":["No","Yes"],"d":1},"Hypertension":{"l":"Hypertension","o":["No","Yes"],"d":0},"Diabetes":{"l":"Diabetes","o":["No","Yes"],"d":0},"Coronary_Disease":{"l":"Coronary Disease","o":["No","Yes"],"d":0},"Cerebrovascular_History":{"l":"Cerebrovascular History","o":["No","Yes"],"d":0},"Stool_Frequency":{"l":"Stool Frequency","u":"0=N,1=Mild,2=Mod,3=Sev","mn":0,"mx":3,"st":1,"d":1},"Stool_Type":{"l":"Stool Type","u":"0=Formed,1=Soft,2=Liq","mn":0,"mx":2,"st":1,"d":1},"Double_Incontinence":{"l":"Double Incontinence","o":["No","Yes"],"d":0},"PAT_Score":{"l":"PAT Score","u":"1-6","mn":1,"mx":6,"st":1,"d":3},"Braden_Scale":{"l":"Braden Scale","u":"6-23","mn":6,"mx":23,"st":1,"d":14},"Skin_Moisture":{"l":"Skin Moisture","u":"0=Dry,1=Mod,2=Excess","mn":0,"mx":2,"st":1,"d":1},"Albumin":{"l":"Serum Albumin","u":"g/L","mn":18,"mx":50,"st":0.1,"d":32},"Hemoglobin":{"l":"Hemoglobin","u":"g/L","mn":60,"mx":170,"st":1,"d":110},"CRP":{"l":"CRP","u":"mg/L","mn":0,"mx":400,"st":1,"d":50},"WBC":{"l":"WBC","u":"x10^9/L","mn":2,"mx":30,"st":0.1,"d":12},"Mechanical_Ventilation":{"l":"Mechanical Ventilation","o":["No","Yes"],"d":0},"Sedation":{"l":"Sedation","o":["No","Yes"],"d":0},"Vasoactive_Drugs":{"l":"Vasoactive Drugs","o":["No","Yes"],"d":0},"Antibiotics":{"l":"Antibiotics","o":["No","Yes"],"d":1},"ICU_LOS":{"l":"ICU Length of Stay","u":"days","mn":1,"mx":60,"st":1,"d":5}};
+const BASIC_FEATS = ["Age","Gender","BMI","GCS","APACHE2","SOFA","Diagnosis_Stroke","Diagnosis_TBI","Sepsis","Hypertension","Diabetes","Coronary_Disease","Cerebrovascular_History"];
+const CLINICAL_FEATS = ["Stool_Frequency","Stool_Type","Double_Incontinence","PAT_Score","Braden_Scale","Skin_Moisture","Mechanical_Ventilation","Sedation","Vasoactive_Drugs"];
+const LAB_FEATS = ["Albumin","Hemoglobin","CRP","WBC","Antibiotics","ICU_LOS"];
+function switchTab(tab,btn){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+tab).classList.add('active');}
+function sigmoid(x){return 1/(1+Math.exp(-x))}
+function calculateRisk(){const feats=MODEL.feature_names;const vals=feats.map(f=>parseFloat(document.getElementById(f).value)||0);const std=vals.map((v,i)=>(v-MODEL.scaler_mean[i])/MODEL.scaler_scale[i]);let logit=MODEL.intercept;for(let i=0;i<std.length;i++)logit+=std[i]*MODEL.coefficients[i];const prob=sigmoid(logit);const pct=(prob*100).toFixed(1);const circ=2*Math.PI*80;const arcLen=prob*circ;document.getElementById('gaugeArc').setAttribute('stroke-dasharray',arcLen+' '+(circ-arcLen));let color='#10b981',lvlClass='risk-low',lvlText='LOW RISK',cat='Low (<30%)',rec='Standard skin care protocol',riskLabel='Low Risk';if(prob>=0.6){color='#ef4444';lvlClass='risk-high';lvlText='HIGH RISK';cat='High (>60%)';rec='Intensive: barrier cream q4h + stool management + frequent assessment';riskLabel='High Risk';}else if(prob>=0.3){color='#f59e0b';lvlClass='risk-moderate';lvlText='MODERATE RISK';cat='Moderate (30-60%)';rec='Enhanced: monitoring + barrier cream q8h';riskLabel='Moderate Risk';}document.getElementById('gaugeArc').setAttribute('stroke',color);document.getElementById('riskValue').textContent=pct+'%';const rl=document.getElementById('riskLevel');rl.className='risk-level '+lvlClass;rl.textContent=lvlText;document.getElementById('riskCategory').textContent=cat;document.getElementById('recommendation').textContent=rec;document.getElementById('oddsRatio').textContent=Math.exp(logit).toFixed(2);updateFeatures(std,riskLabel,pct);}
+function updateFeatures(std,riskLabel,pct){const contr=MODEL.feature_names.map((name,i)=>{const rawImp=std[i]*MODEL.coefficients[i];return{name:name,importance:Math.abs(rawImp),raw:rawImp};});contr.sort((a,b)=>b.importance-a.importance);const top10=contr.slice(0,10);const maxImp=top10[0].importance;let html='<div style="margin-bottom:10px;font-size:0.8rem;color:#6b7280">Top factors driving '+riskLabel.toLowerCase()+' ('+pct+'%):</div>';for(const f of top10){const pct2=(f.importance/maxImp*100).toFixed(0);html+='<div class="feature-bar"><div class="feature-bar-name">'+LABEL_MAP[f.name]+'</div><div class="feature-bar-track"><div class="feature-bar-fill" style="width:'+pct2+'%"></div></div><div class="feature-bar-value">'+pct2+'%</div></div>';}document.getElementById('featureImportance').innerHTML=html;}
+function resetForm(){for(const[k,v]of Object.entries(DEFAULTS)){const el=document.getElementById(k);if(el)el.value=v;}document.getElementById('gaugeArc').setAttribute('stroke-dasharray','0 502');document.getElementById('gaugeArc').setAttribute('stroke','#e5e7eb');document.getElementById('riskValue').textContent='--%';const rl=document.getElementById('riskLevel');rl.className='risk-level';rl.style.background='#f3f4f6';rl.style.color='#6b7280';rl.textContent='Enter data and click Calculate';document.getElementById('riskCategory').textContent='--';document.getElementById('recommendation').textContent='--';document.getElementById('oddsRatio').textContent='--';document.getElementById('featureImportance').innerHTML='<p style="color:#9ca3af;text-align:center;padding:20px">Calculate risk to see feature contributions</p>';}
+function loadExample(){const ex={"Age":75,"Gender":1,"BMI":22,"GCS":7,"APACHE2":28,"SOFA":10,"Diagnosis_Stroke":1,"Diagnosis_TBI":0,"Sepsis":1,"Hypertension":1,"Diabetes":0,"Coronary_Disease":0,"Cerebrovascular_History":1,"Stool_Frequency":2,"Stool_Type":2,"Double_Incontinence":1,"PAT_Score":5,"Braden_Scale":10,"Skin_Moisture":2,"Albumin":28,"Hemoglobin":95,"CRP":120,"WBC":15,"Mechanical_Ventilation":1,"Sedation":1,"Vasoactive_Drugs":1,"Antibiotics":1,"ICU_LOS":12};for(const[k,v]of Object.entries(ex)){const el=document.getElementById(k);if(el)el.value=v;}calculateRisk();}
+(function(){function buildInput(feat){const fd=FEAT_DEFS[feat];const unit=fd.u?' <span class="unit">('+fd.u+')</span>':'';let input='';if(fd.o){input='<select id="'+feat+'" class="form-select">'+fd.o.map((opt,j)=>'<option value="'+j+'"'+(j===fd.d?' selected':'')+'>'+opt+'</option>').join('')+'</select>';}else{input='<input type="number" id="'+feat+'" value="'+fd.d+'" min="'+fd.mn+'" max="'+fd.mx+'" step="'+fd.st+'" class="form-input">';}return '<div class="input-group"><label for="'+feat+'">'+fd.l+unit+'</label>'+input+'</div>';}document.getElementById('grid-basic').innerHTML=BASIC_FEATS.map(buildInput).join('');document.getElementById('grid-clinical').innerHTML=CLINICAL_FEATS.map(buildInput).join('');document.getElementById('grid-laboratory').innerHTML=LAB_FEATS.map(buildInput).join('');})();
+</script>
+</body></html>
